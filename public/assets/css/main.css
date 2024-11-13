@@ -1,0 +1,113 @@
+#sidebar {
+  width: 400px;
+  overflow-y: auto;
+  margin-top:80px;
+  padding-left:1rem;
+  padding-right:1rem;
+  border-right: 1px solid #ddd;
+}
+
+/** scroll bar **/
+#sidebar {
+  --sb-track-color: #f1f5f7;
+  --sb-thumb-color: #6BAF8D;
+  --sb-size: 7px;
+}
+
+#sidebar::-webkit-scrollbar {
+  width: var(--sb-size)
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: var(--sb-track-color);
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb-color);
+  border-radius: 3px;
+  
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  #sidebar {
+    scrollbar-color: var(--sb-thumb-color)
+                     var(--sb-track-color);
+  }
+}
+
+
+#map {
+  flex-grow: 1;
+}
+
+#sidebar > .btn-close {
+  display: none; /* 기본적으로 숨김 */
+}
+
+#placeList li {
+  padding-bottom:1rem;
+  margin-bottom:1rem;
+  border-bottom:1px solid #bbb;
+}
+
+#placeList li img {
+  border-radius:5px;
+}
+
+@media (max-width: 768px) {
+  #sidebar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40vh; /* 화면의 절반 높이 */
+    width: 100%; /* 너비 가득 */
+    background-color: white;
+    padding-top:1.5rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    z-index: 1000;
+  }
+
+  #addNew {
+    display: block !important;
+    position: fixed;
+    top: 91px;
+    right: 21px;
+    z-index: 900;
+  }
+
+  #floatingButton {
+    display: block !important;
+    position: fixed;
+    left:50%;
+    margin-left:-30%;
+    bottom: 20px;
+    width: 60%;
+    height:35px;
+    background-color: #ffffff;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    text-align:center;
+    padding-top:6px;
+  }
+
+  #sidebar > .btn-close {
+    display: block; /* 모바일에서만 표시 */
+  }
+}
+
+/* 기본 설정 - 웹 화면에서는 그대로 보이도록 설정 */
+#floatingButton {
+  display: none;
+}
+
+.forNoTip {
+  display: none;
+}
+
+.forFairTip {
+  display: none;
+}

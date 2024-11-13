@@ -1,0 +1,46 @@
+body {
+  display: flex;
+  margin: 0 0 80 0;
+  height: 100vh;
+  position: relative;
+  font-family: "Poppins", sans-serif !important;
+}
+
+.navbar {
+  height:65px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 55px; /* 프로필 이미지 아래 */
+  right: 0;
+  width: 150px;
+}
+
+#newPlaceSearch {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  width: 300px;
+  padding: 15px;
+  background-color: #ffffff;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  z-index: 1100;
+  display:none;
+}
+
+#googleSignInBtn {
+  width: 100% !important;
+  display: flex;
+  justify-content: center;
+}
+
