@@ -18,6 +18,7 @@
     />
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/assets/js/common.js?v=1"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Fonts -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -48,7 +49,7 @@
         <button id="addNew" class="btn btn-light">Add New</button>
         <div class="d-flex align-items-center">
           <?php if($user=getUser()) { ?>
-          <img src="<?=$user['profile_image']?>" id="profileImg" alt="Profile" class="profile-img ms-2">
+          <img src="<?=$user['profilePicture']?>" id="profileImg" alt="Profile" class="profile-img ms-2">
           <div class="dropdown-menu p-2 shadow" id="profileMenu">
             <a class="dropdown-item" href="#activity">Activity</a>
             <a class="dropdown-item" id="signOutLink" href="#signout">Sign Out</a>
