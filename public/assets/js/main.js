@@ -94,16 +94,16 @@ function initMap() {
         }
       });  
 
-      // 자동완성 초기화
-        initAutocomplete();
-        loadPlaces();
+      initAutocomplete();
+      loadPlaces();
       },
       () => {
         console.error("Geolocation service failed.");
         defaultMapInitialization();
-      }
-      );
-  } else {
+    });
+  } 
+  else 
+  {
     console.error("Browser doesn't support Geolocation.");
     defaultMapInitialization();
   }
@@ -119,10 +119,9 @@ function toggleMarkerLabels() {
   });
 }
 
-// Geolocation 실패 시 기본 지도 초기화
 function defaultMapInitialization() {
   map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 40.749933, lng: -73.98633 }, // 뉴욕 좌표
+    center: { lat: 40.749933, lng: -73.98633 }, // New York
     zoom: 13,
     styles: defaultStyle,
   });
@@ -164,7 +163,7 @@ function loadPlaces() {
         icon: {
           url: iconUrl,
           scaledSize: new google.maps.Size(40, 40),
-          labelOrigin: new google.maps.Point(20, 45), // 마커 아래로 라벨 위치 조정
+          labelOrigin: new google.maps.Point(20, 45), 
         },
       });
 
@@ -176,15 +175,19 @@ function loadPlaces() {
         loadRegisteredPlaceInfo(place.place_id);
       });
 
-      mainPhoto = place.photos[0].file_id;
+      let mainPhoto;
+      if (place.photos && place.photos.length > 0) {
+          mainPhoto = '/file/image/'+place.photos[0].file_id+'/360x200';
+      } else {
+          mainPhoto = '/assets/imgs/sample/restaurant1.png'; 
+      }
 
       $("#placeList").append(`
         <li onclick="loadRegisteredPlaceInfo('${place.place_id}')">
-        <div><img src="/file/download/${mainPhoto}" class="w-100 rounded"></div>
+        <div class="list-main-photo" style="background:URL('${mainPhoto}')"></div>
         <div class="mt-2"><strong>${place.name}</strong> <span class="text-info small ms-1">${place.type}</span></div>
         <div class="mt-2">${place.address}</div>
         <div class="mt-2"><span class="badge text-bg-primary">No Tip</span></div>
-        <div class="mt-3"><a class="btn btn-outline-dark btn-sm" href="https://www.google.com/maps/place/?q=place_id:${place.place_id}" target="_blank">View on Google Maps</a></div>
         </li>
       `);
 
@@ -317,45 +320,57 @@ function loadRegisteredPlaceInfo(placeId) {
   });
 }
 
-function renderPlaceDetailsUI(place) {
-
-  place.reviews = [
-    {
-      userPhoto: "/assets/imgs/sample/user1.jpg", // 예시 이미지 URL
-      userName: "Namit",
-      text: "Great place! The atmosphere was amazing, and the staff was very friendly. Highly recommended!"
-    },
-    {
-      userPhoto: "/assets/imgs/sample/user2.jpg", // 예시 이미지 URL
-      userName: "Ishita",
-      text: "Had a fantastic experience here. The food was delicious, and I'll definitely be back again!"
-    }
-  ];
-
-  const reviewsHtml = place.reviews.map((review) => `
-    <div class="media mb-3">
-    <img src="${review.userPhoto}" class="mr-3 rounded-circle" alt="User photo" width="36" height="36">
-    <span class="mt-0">${review.userName}</span>
-    <div class="media-body mt-2">
-    <p>${review.text}</p>
-    </div>
-    </div>
-    `).join("");
+function renderPlaceDetailsUI(place) 
+{
+  let mainPhoto = place.photos[0].file_id;
 
   $("#place-detail").html(`
+    <p class="text-capitalize text-muted">${place.type}</p>
     <button type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close" onclick="$(this).parent().hide()"></button>
     <div>
     <h5>${place.name}</h5>
+    <div class="my-3"><img src="/file/image/${mainPhoto}/360x200" class="w-100 rounded"></div>
     <p>${place.address}</p>
-    <p><strong>Type:</strong> ${place.type}</p>
+    <div class="mt-3"><a class="btn btn-outline-dark btn-sm" href="https://www.google.com/maps/place/?q=place_id:${place.place_id}" target="_blank">View on Google Maps</a></div>
     <hr>
-    <h6>Reviews</h6>
-    ${reviewsHtml || "<p>No reviews yet.</p>"}
+    <div class="small border" style="margin:-4px; padding:8px">
+      <div class="mt-2">Registered by <i class="bi bi-robot"></i> Notip-bot, as</div>
+      <div class="my-2 text-center">
+        <div class="gold-shimmer">No Tip</div>
+      </div>
+      <div class="my-3"><b>Basis</b>: I confirmed it from other sources.</div>
+      <div class="text-info text-truncate small p-3">
+        <a href="https://www.grubstreet.com/2015/12/all-nyc-restaurants-no-tipping.html" target="_blank">
+          https://www.grubstreet.com/2015/12/all-nyc-restaurants-no-tipping.html
+        </a>
+      </div>
+    </div>
+    <hr>
+    <h5 class="mb-3">Reviews</h5>
+    <ul id="review-list">
+    </ul>
     <div class="mt-3">
-    <h6>Add Your Review</h6>
-    <textarea class="form-control" placeholder="Write your review..."></textarea>
+    <h5 class="mt-4 mb-3">Add Your Review</h5>
+    <form id="review-form" onsubmit="return submitReview($(this))">
+    <input type="hidden" name="place-id" id="place-id" value="${place.place_id}">
+    <textarea name="review-content" class="form-control" placeholder="Write your review..."></textarea>
+    <div class="my-2 small text-muted">Don't need to choose.. <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Selecting the following checkbox is optional. If you're unsure, feel free to skip it and just leave a review."></i></div>
+    <div class="form-check">
+      <input class="form-check-input" name="review-confirm" type="checkbox" value="1" id="review-confirm-check">
+      <label class="form-check-label" for="review-confirm-check">
+        Confirmed as a No-tip Place.
+      </label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" name="review-dispute" type="checkbox" value="1" id="review-dispute-check">
+      <label class="form-check-label" for="review-dispute-check">
+        This is not a No-tip Place.
+      </label>
+    </div>
+    
     <div class="text-end">
-    <button class="btn btn-secondary mt-2" onclick="submitReview()">Post</button>
+    <button class="btn btn-secondary mt-2">Post Review</button>
+    </form>
     </div>
     </div>
     </div>
@@ -363,11 +378,85 @@ function renderPlaceDetailsUI(place) {
 
   $("#place-detail").fadeIn();
   $("#sidebar").scrollTop(0);
+  initTooltip();
+  loadReviews();
 }
 
-// 리뷰 제출 함수 (플레이스홀더 기능)
-function submitReview() {
-  alert("Review submitted! (This is a placeholder)");
+function loadReviews() 
+{
+  placeId = $("#place-id").val();
+  if(!placeId) 
+  {
+    console.log('place id is required');
+    return false;
+  }
+
+  sampleReviews = [
+    {
+      profile_picture: "/assets/imgs/sample/user1.jpg", // 예시 이미지 URL
+      name: "Namit",
+      content: "Great place! The atmosphere was amazing, and the staff was very friendly. Highly recommended!",
+      time: "Just now"
+    },
+    {
+      profile_picture: "/assets/imgs/sample/user2.jpg", // 예시 이미지 URL
+      name: "Ishita",
+      content: "Had a fantastic experience here. The food was delicious, and I'll definitely be back again!",
+      time: "Few days ago"
+    }
+  ];
+
+  $.ajax({
+    url: "/review/list/"+placeId,
+    dataType: "json",
+    success: function (response) {
+      console.log(response);
+      const reviews = response.data || [];
+      console.log(reviews);
+      renderReviews(reviews.length > 0 ? reviews : sampleReviews);
+    },
+    error: function (error) {
+      console.log("Failed to lad review. Please try again.");
+      console.error("Error:", error);
+    }
+  });
+
+  function renderReviews(reviews) {
+    const reviewsHtml = reviews.map((review) => `
+      <li class="media mb-3"> 
+        <img src="${review.profile_picture}" class="mr-3 rounded-circle" alt="User photo" width="36" height="36">
+        <span class="mt-0">${review.name}</span>
+        <div class="media-body mt-2 small">
+          ${review.content}
+        </div>
+        <div class="text-end text-muted small mb-2">
+          ${review.time}
+        </div>
+      </li>
+    `).join("");
+    $("#review-list").html(reviewsHtml);
+  }
+}
+
+function submitReview(form) 
+{
+  serializedData = form.serialize();
+  console.log(serializedData);  
+
+  $.ajax({
+    url: "/review/add",
+    method: "POST",
+    data: serializedData,
+    success: function (response) {
+      loadReviews();
+    },
+    error: function (error) {
+      alert("Failed to submit review. Please try again.");
+      console.error("Error:", error);
+    }
+  });
+
+  return false;
 }
 
 // 검색창 자동완성 초기화

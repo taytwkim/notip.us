@@ -14,12 +14,14 @@ class Page extends BaseController
     public function map(): void
     {
         echo view('templates/head');
-        echo view('main');
+        echo view('map');
         echo view('templates/foot');
     }
 
-    public function search(): string
+    public function list(): void
     {
-        return view('search-test');
+        echo view('templates/head');
+        echo view('list');
+        echo view('templates/foot');
     }
 }
