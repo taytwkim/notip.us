@@ -1,23 +1,144 @@
 let map, infowindow, autocomplete, selectedMarker;
 let isPOIVisible = false; // Flag to check if POIs are visible
+let center;
+
 const markers = [];
+var path = window.location.pathname;
+var match = path.match(/\/map\/([^\/]+)/);
+let placeId = null;
+if (match) {
+  placeId = match[1];
+  console.log("Place ID:", placeId);
+} else {
+  console.log("Place ID not found in the URL");
+}
 
 // 기본 스타일 및 검색 포커스 스타일 설정
 const defaultStyle = [
-{
-  featureType: "poi",
-  elementType: "labels.icon",
-  stylers: [{ visibility: "off" }], // 기본적으로 POI 숨김
-},
+  {
+    featureType: "poi",
+    elementType: "labels.icon",
+    stylers: [{ visibility: "off" }], // 기본적으로 POI 숨김
+  },
 ];
 
 const focusStyle = [
-{
-  featureType: "poi",
-  elementType: "labels.icon",
-  stylers: [{ visibility: "on" }], // 검색창 포커스 시 POI 보이도록 설정
-},
+  {
+    featureType: "poi",
+    elementType: "labels.icon",
+    stylers: [{ visibility: "on" }], // 검색창 포커스 시 POI 보이도록 설정
+  },
 ];
+
+$(function () {
+  var animationInProgress = false; // 애니메이션 진행 중 여부를 확인하는 플래그
+  var panelReset = false;
+  var maxAllowedHeight = 0; // Initialize maxAllowedHeight
+
+  $("#sidebar").resizable({
+    handles: {
+        s: ".handle" 
+    },
+    minWidth: $("#sidebar").width(), // 현재 너비를 최소 너비로 설정
+    maxWidth: $("#sidebar").width(), // 현재 너비를 최대 너비로 설정
+    maxHeight:800,
+    start: function(e, ui) {
+      e.stopPropagation(); // 이벤트 전파를 중지하여 지도에서의 mousedown 이벤트를 차단
+      if(panelReset) {
+        var parentHeight = $(this).parent().height();
+        resetPanel(parentHeight);  
+        panelReset = false;
+      }
+      console.log('● resizing started');
+    },
+    resize: function(event, ui) {
+      var parentHeight = $(this).parent().innerHeight();
+      var currentHeight = ui.size.height;
+      var originalHeight = ui.originalSize.height;
+      var deltaHeight = currentHeight - originalHeight;
+      maxAllowedHeight = parentHeight * 0.9; 
+
+      console.log('parentHeight: '+parentHeight);
+      console.log('maxAllowedHeight: '+maxAllowedHeight);
+      console.log('currentHeight: '+currentHeight);
+      console.log('originalHeight: '+originalHeight);
+      console.log('deltaHeight: '+deltaHeight);
+      console.log('ui.position.top: '+ui.position.top);
+
+      targetTop = ui.position.top + deltaHeight;
+      var targetHeight = originalHeight - deltaHeight;
+
+      $(this).css({
+        top: targetTop,
+        height: targetHeight,
+        width: '100%'
+      });
+
+      if (targetHeight > maxAllowedHeight) {
+        console.log('(Warning!) height hit the top');
+
+        if (!animationInProgress) {
+          animationInProgress = true; // Set flag to indicate animation in progress
+          targetHeight = maxAllowedHeight-50;
+          targetTop = parentHeight - maxAllowedHeight+50; // Adjust top value based on height limit
+
+          $(this).animate({
+            top: targetTop,
+            height: targetHeight
+          }, 200, function() {
+              console.log('◆ ceil animation done');
+              animationInProgress = false; // Reset flag after animation is complete
+          });
+        }
+      }
+
+      if(targetHeight < 50 || parentHeight - targetTop < 50) {
+        console.log('(Warning!) height hit the bottom');
+
+        if (!animationInProgress) {
+          animationInProgress = true; // Set flag to indicate animation in progress
+          targetHeight = 50;
+          targetTop = parentHeight - 50;
+
+          $(this).animate({
+            top: targetTop,
+            height: targetHeight
+          }, 200, function() {
+              console.log('◆ floor animation done');
+              animationInProgress = false; // Reset flag after animation is complete
+          });
+
+          panelReset = true;
+        }
+      }
+      
+      console.log('targetTop: '+targetTop);
+      console.log('targetHeight: '+targetHeight);
+      
+      return false;
+    },
+    stop: function(e, ui) {
+      console.log('■ resizing stopped');
+      console.log(ui);
+    }
+  });
+
+  // Handle pointerdown to adjust height when at max limit
+  $("#sidebar").on("pointerdown", function () {
+    var currentHeight = $(this).height();
+    if (currentHeight >= maxAllowedHeight) {
+      $(this).height(currentHeight - 1); // Reduce height by 1 to enable resize
+    }
+  });
+});
+
+function resetPanel(parentHeight) {
+  console.log('reset');
+  $("#sidebar").animate({
+    top: parentHeight - 300,
+    height: 300
+  }, 200); // 200ms 동안 애니메이션
+}
 
 $(document).ready(function () {
   // Google Maps API 로드 후 initMap 호출
@@ -25,32 +146,11 @@ $(document).ready(function () {
     "https://maps.googleapis.com/maps/api/js?key=AIzaSyA69MLRfjDCUoSHsSPgU1uYHo4OGonMXAM&libraries=places&language=en",
     function () {
       initMap();
-    });
-
-// Add New 버튼 클릭 시 장소 검색 UI 표시
-$("#addNew").click(function() {
-  if(!$("#newPlaceSearch").is(":visible")) {
-    $("#newPlaceSearch").fadeIn();
-    map.setOptions({ styles: focusStyle }); // 스타일 변경
-    isPOIVisible = true; 
-  }
-});
-
-$("#newPlaceSearch .btn-close").click(function() {
-  map.setOptions({ styles: defaultStyle }); // 스타일 변경
-  isPOIVisible = false; 
-});
-
-// 모바일 화면에서 플로팅 버튼 클릭 시 sidebar 토글
-  $("#floatingButton").click(function () {
-    $("#sidebar").slideDown();
-    $("#floatingButton").hide('200');
   });
 
-  $("#sidebar .btn-close").click(function () {
-    $("#sidebar").fadeOut('200');
-    $("#floatingButton").show('200');
-  });
+  if(placeId) {
+    loadPlaceInfo(placeId);
+  }  
 
   $(window).resize(function () {
     if ($(window).width() > 768) {
@@ -60,8 +160,32 @@ $("#newPlaceSearch .btn-close").click(function() {
   });
 });
 
+function setNewPlaceMap() {
+  if(!$("#newPlaceSearch").is(":visible")) {
+    $("#newPlaceSearch").fadeIn();
+    map.setOptions({ styles: focusStyle });
+    isPOIVisible = true; 
+  }
+}
+
+function offNewPlaceMap() {
+  $("#new-place").hide();
+  $("#new-place").empty();
+
+  map.setOptions({ styles: defaultStyle });
+  isPOIVisible = false; 
+  $("#newPlaceSearch").hide();
+}
+
+// To prevent momentary layout shifts, fast pure JavaScript is used.
+function imageLoaded(img) {
+  const skeleton = img.previousElementSibling; // Selects the skeleton
+  skeleton.classList.add('loaded'); // Hides the skeleton
+  img.style.display = 'block'; // Ensures the image is visible
+}
+
 function initMap() {
-// HTML5 Geolocation API로 현재 위치 가져오기
+  // Try HTML5 Geolocation API to find current location
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -79,7 +203,7 @@ function initMap() {
         infowindow = new google.maps.InfoWindow();
         selectedMarker = new google.maps.Marker({
           map,
-        visible: false, // 초기에는 보이지 않도록 설정
+        visible: false,
       });
 
       map.addListener("zoom_changed", toggleMarkerLabels);
@@ -88,12 +212,18 @@ function initMap() {
           console.log("Map Clicked");
           console.log(event);
           if (event.placeId) {
-            event.stop(); // 기본 클릭 이벤트 중지
-            loadPlaceDetails(event.placeId); // placeId로 POI 세부 정보 로드
+            event.stop();
+            loadPlaceDetails(event.placeId);
           }
         }
       });  
 
+      map.addListener("dragend", () => {
+          center = map.getCenter();
+          loadPlaces();
+      });
+
+      center = map.getCenter();
       initAutocomplete();
       loadPlaces();
       },
@@ -112,7 +242,7 @@ function initMap() {
 function toggleMarkerLabels() {
   const currentZoom = map.getZoom();
 
-  console.log(currentZoom);
+  console.log('current zoom level: '+currentZoom);
 
   markers.forEach(marker => {
     marker.setLabel(currentZoom >= 14 ? marker._originalLabel : null);
@@ -134,10 +264,19 @@ function defaultMapInitialization() {
   loadPlaces();
 }
 
-// 마커를 API 데이터로 로드
 function loadPlaces() {
-  $.getJSON("/place/list", (data) => {
-    data.data.forEach((place) => {
+  lat = center.lat();
+  lng = center.lng();
+
+  $.getJSON(`/place/list/location?lat=${lat}&lng=${lng}`, (result) => {
+
+    markers.forEach(marker => marker.setMap(null));  // Remove existing markers from the map
+      markers.length = 0;
+    $("#placeList").empty();
+
+    console.log(result);
+
+    result.data.places.forEach((place) => {
       // 장소 유형에 따른 마커 아이콘 설정
       let iconUrl;
       if (place.type === "cafe") {
@@ -172,18 +311,18 @@ function loadPlaces() {
       markers.push(marker);
 
       marker.addListener("click", () => {
-        loadRegisteredPlaceInfo(place.place_id);
+        loadPlaceInfo(place.place_id);
       });
 
       let mainPhoto;
       if (place.photos && place.photos.length > 0) {
           mainPhoto = '/file/image/'+place.photos[0].file_id+'/360x200';
       } else {
-          mainPhoto = '/assets/imgs/sample/restaurant1.png'; 
+          mainPhoto = getRandomSampleImage(); 
       }
 
       $("#placeList").append(`
-        <li onclick="loadRegisteredPlaceInfo('${place.place_id}')">
+        <li onclick="loadPlaceInfo('${place.place_id}')">
         <div class="list-main-photo" style="background:URL('${mainPhoto}')"></div>
         <div class="mt-2"><strong>${place.name}</strong> <span class="text-info small ms-1">${place.type}</span></div>
         <div class="mt-2">${place.address}</div>
@@ -196,7 +335,7 @@ function loadPlaces() {
 }
 
 function addPlaceUI() {
-  $("input[name=tipPolicy]").change(function() {
+  $("input[name=policy]").change(function() {
     if($(this).val() == "noTip") {
       $(".forNoTip").fadeIn();
       $(".forFairTip").hide();
@@ -206,30 +345,62 @@ function addPlaceUI() {
       $(".forNoTip").hide();
     }
   });
+
+  $("#basedon-source").change(function() {
+    if($("#basedon-source").is(":checked")) {
+      $(".source-group").show();
+    }
+    else
+    {
+      $(".source-group").hide();
+    }  
+  });
+
+  $("#basedon-official").change(function() {
+    if($("#basedon-official").is(":checked")) {
+      $(".official-group").show();
+    }
+    else
+    {
+      $(".official-group").hide();
+    }  
+  })
 }
 
 
 function displayPlaceDetails(placeDetails) {
+  console.log(placeDetails);
   $("#new-place").html(`
-    <button type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close" onclick="$(this).parent().hide()"></button>
+    <button type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close" onclick="offNewPlaceMap()"></button>
     <h5><b>Register New</b></h5>
+    <form id="register-form" onsubmit="return savePlace($(this))">
+    <input type="hidden" name="google-place-id" value="${placeDetails.placeId}">
+    <input type="hidden" name="name" value="${placeDetails.name}">
+    <input type="hidden" name="address" value="${placeDetails.address}">
+    <input type="hidden" name="type" value="${placeDetails.type}">
+    <input type="hidden" name="state" value="${placeDetails.state}">
+    <input type="hidden" name="city" value="${placeDetails.city}">
+    <input type="hidden" name="latitude" value="${placeDetails.latitude}">
+    <input type="hidden" name="longitude" value="${placeDetails.longitude}">
+    <input type="hidden" name="zipcode" value="${placeDetails.zipcode}">
+    
     ${placeDetails.photoUrl ? `<img src="${placeDetails.photoUrl}" alt="${placeDetails.name}" class="img-fluid rounded mt-3">` : ""}
     <div class="mt-3"><span class="fs-5"><strong>${placeDetails.name}</strong></span> <span class="text-info small ms-1">${placeDetails.type}</span></div>
     <p>${placeDetails.address}</p>
     <p><strong>Will you add this place as a No-Tip place or a Fair-Tip place?</strong></p> 
     <p><strong>Tip Policy</strong></p>
     <div class="btn-group" role="group">
-      <input type="radio" class="btn-check" name="tipPolicy" id="tipPolicy-noTip" value="noTip" autocomplete="off">
-      <label class="btn btn-outline-primary" for="tipPolicy-noTip">No Tip</label>
-      <input type="radio" class="btn-check" name="tipPolicy" id="tipPolicy-fairTip" value="fairTip" autocomplete="off">
-      <label class="btn btn-outline-primary" for="tipPolicy-fairTip">Fair Tip</label>
+      <input type="radio" class="btn-check" name="policy" id="policy-noTip" value="noTip" autocomplete="off">
+      <label class="btn btn-outline-primary" for="policy-noTip">No Tip</label>
+      <input type="radio" class="btn-check" name="policy" id="policy-fairTip" value="fairTip" autocomplete="off">
+      <label class="btn btn-outline-primary" for="policy-fairTip">Fair Tip</label>
     </div>
     <div>
     <div class="forNoTip">
       <p class="mt-2"><i class="bi bi-exclamation-circle"></i> "No Tip" means:</p>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input" type="checkbox" name="policy-notaccept" value="1" id="policy-notaccept">
+        <label class="form-check-label" for="policy-notaccept">
           This place does not accept tips by policy.
         </label>
       </div>
@@ -237,26 +408,26 @@ function displayPlaceDetails(placeDetails) {
     <div class="forFairTip">
       <p class="mt-2"><i class="bi bi-exclamation-circle"></i> "Fair Tip" means one of the following applies:</p>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input fairtip-policy" type="checkbox" name="policy-min10" value="1" id="policy-min10">
+        <label class="form-check-label" for="policy-min10">
           The suggested minimum tip is 10% or lower.
         </label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input fairtip-policy" type="checkbox" name="policy-max20" value="1" id="policy-max20">
+        <label class="form-check-label" for="policy-max20">
           The suggested maximum tip is 20% or lower.
         </label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input fairtip-policy" type="checkbox" name="policy-nosuggest" value="1" id="policy-nosuggest">
+        <label class="form-check-label" for="policy-nosuggest">
           No tip amount is suggested.
         </label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input fairtip-policy" type="checkbox" name="policy-guarantee" value="1" id="policy-guarantee">
+        <label class="form-check-label" for="policy-guarantee">
           They state that minimum wage is guaranteed for employees without relying on tips.
         </label>
       </div>
@@ -264,54 +435,106 @@ function displayPlaceDetails(placeDetails) {
     <p class="mt-3"><strong>How do you know?</strong></p> 
     <div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input" type="checkbox" value="1" id="basedon-experience" name="basedon-experience">
+        <label class="form-check-label" for="basedon-experience">
           I experienced it myself.
         </label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input" type="checkbox" value="1" id="basedon-source" name="basedon-source">
+        <label class="form-check-label" for="basedon-source">
           I confirmed it from other sources.
         </label>
       </div>
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault">
-        <label class="form-check-label" for="flexCheckDefault">
+        <input class="form-check-input" type="checkbox" value="1" id="basedon-official" name="basedon-official">
+        <label class="form-check-label" for="basedon-official">
           I confirmed it on the official website.
         </label>
       </div>
     </div>
-    <p class="mt-3 mb-1"><strong>Official State</strong></p> 
-    <div><input type="text" class="form-control" placeholder="https://"></div>
-    <p class="mt-3 mb-1"><strong>External Source</strong></p> 
-    <div><input type="text" class="form-control" placeholder="https://"></div>
+    <div class="source-group hidden">
+      <p class="mt-3 mb-1"><strong>External Source</strong></p> 
+      <div><input type="text" name="source-page" class="form-control" placeholder="https://"></div>
+    </div>
+    <div class="official-group hidden">
+      <p class="mt-3 mb-1"><strong>Official State</strong></p> 
+      <div><input type="text" name="official-page" class="form-control" placeholder="https://"></div>
+    </div>
     <p class="mt-3 mb-1"><strong>Please explain more about what you saw or experienced.</strong></p> 
-    <div><textarea type="text" class="form-control"></textarea></div>
+    <div><textarea type="text" name="experience" class="form-control"></textarea></div>
+    </form>
     <div class="mt-3">
-      <button class="btn btn-primary" onclick="savePlaceToDatabase()">Register</button>
-      <button class="btn btn-secondary" onclick="cancelPlaceDetails()">Cancel</button>
+      <button type="submit" class="btn btn-primary">Register</button>
+      <button type="button" class="btn btn-secondary" onclick="offNewPlaceMap()">Cancel</button>
     </div>
     `);
   $("#new-place").show();
   addPlaceUI();
-  window.placeDetailsForSave = placeDetails;
+  $("#panel-content").animate({ scrollTop: 0 }, 500);
 }
 
-// 초기 상태 복원 함수
-function cancelPlaceDetails() {
-  $("#new-place").empty(); // UI 초기화
-  map.setOptions({ styles: defaultStyle }); // 기본 스타일로 복원
-  selectedMarker.setVisible(false); // 선택된 마커 숨기기
+function savePlace(form) {
+  const policy = $('input[name="policy"]:checked').val();
+  if(!policy) {
+    alert('Please select whether this place has a "No Tip" policy or a "Fair Tip" policy.');
+    return false;
+  }
+
+  if(policy=='noTip' && !$("#policy-notaccept").is(":checked")) {
+    alert('If the place has a no-tip policy, you should confirm that this it does not accept tips by policy.');
+    return false;
+  }
+
+  if(policy=='fairTip' && $('.fairtip-policy:checked').length < 1) {
+    alert('If the place has a fair-tip policy, you should check at least one detail about the policy.');
+    return false;
+  }
+
+  serializedPlaceData = form.serialize();
+  console.log(serializedPlaceData);  
+
+  $.ajax({
+    url: "/place/save",
+    method: "POST",
+    dataType: "json",
+    data: serializedPlaceData,
+    success: function (response) {
+      console.log(response);
+      if(response.success) 
+      {
+        // 정상적으로 
+        offNewPlaceMap();
+        loadPlaces();
+        selectedMarker.setVisible(false);
+        loadPlaceInfo(response.data);
+        $('#modal-registered').modal('show');
+      }
+      else
+      {
+        alert('An error occurred during registering');
+        return false;
+      }
+    },
+    error: function (error) {
+      alert("Failed to save place. Please try again.");
+      console.error("Error:", error);
+    }
+  });
+
+  return false;
 }
 
 // 등록된 장소 클릭 시 상세 정보 로드 및 UI 표시
-function loadRegisteredPlaceInfo(placeId) {
+function loadPlaceInfo(placeId) {
   console.log('loading data from the database');
   $.getJSON(`/place/info/${placeId}`, (res) => {
     if (res.success) {
-      renderPlaceDetailsUI(res.data);
+      renderPlaceDetails(res.data);
       $("#new-place").hide();
+
+      var newUrl = '/map/' + encodeURIComponent(placeId);
+      window.history.pushState({ path: newUrl }, '', newUrl);
     } else {
       console.error("Failed to load place info.");
     }
@@ -320,64 +543,75 @@ function loadRegisteredPlaceInfo(placeId) {
   });
 }
 
-function renderPlaceDetailsUI(place) 
+function renderPlaceDetails(place) 
 {
-  let mainPhoto = place.photos[0].file_id;
+  let mainPhoto;
+  if (place.photos && place.photos.length > 0) {
+      mainPhoto = '/file/image/'+place.photos[0].file_id+'/360x200';
+  } else {
+      mainPhoto = getRandomSampleImage(); 
+  }
 
   $("#place-detail").html(`
-    <p class="text-capitalize text-muted">${place.type}</p>
+    <div class="mb-3">
+      <div class="gold-shimmer px-3 py-1 me-2" style="font-size:0.8rem">No Tip</div>
+      <span class="text-capitalize text-muted align-middle"><b>${place.type}</b></span>
+    </div>
     <button type="button" class="btn-close position-absolute m-2 top-0 end-0" aria-label="Close" onclick="$(this).parent().hide()"></button>
     <div>
-    <h5>${place.name}</h5>
-    <div class="my-3"><img src="/file/image/${mainPhoto}/360x200" class="w-100 rounded"></div>
+    <h4>${place.name}</h4>
+    <div class="image-container my-3">
+      <div class="skeleton"></div>
+      <img 
+        src="${mainPhoto}" 
+        class="w-100 rounded" 
+        onload="imageLoaded(this)">
+    </div>
     <p>${place.address}</p>
-    <div class="mt-3"><a class="btn btn-outline-dark btn-sm" href="https://www.google.com/maps/place/?q=place_id:${place.place_id}" target="_blank">View on Google Maps</a></div>
+    <div class="mt-3"><a class="btn btn-outline-dark btn-sm" href="https://www.google.com/maps/place/?q=place_id:${place.google_place_id}" target="_blank">View on Google Maps</a></div>
     <hr>
-    <div class="small border" style="margin:-4px; padding:8px">
-      <div class="mt-2">Registered by <i class="bi bi-robot"></i> Notip-bot, as</div>
-      <div class="my-2 text-center">
-        <div class="gold-shimmer">No Tip</div>
-      </div>
-      <div class="my-3"><b>Basis</b>: I confirmed it from other sources.</div>
-      <div class="text-info text-truncate small p-3">
+    <div class="small border bg-light mb-3 p-3">
+      <div class="mt-2">Registered by <i class="bi bi-robot"></i> Notip-bot</div>
+      <div class="my-3"><i>"I confirmed it from other sources."</i></div>
+      <div class="text-info small">
         <a href="https://www.grubstreet.com/2015/12/all-nyc-restaurants-no-tipping.html" target="_blank">
           https://www.grubstreet.com/2015/12/all-nyc-restaurants-no-tipping.html
         </a>
       </div>
     </div>
+    <a class="btn btn-sm btn-outline-primary" href="/manage/register/${place.place_id}">Are you the manager of this place?</a>
     <hr>
-    <h5 class="mb-3">Reviews</h5>
-    <ul id="review-list">
-    </ul>
-    <div class="mt-3">
-    <h5 class="mt-4 mb-3">Add Your Review</h5>
-    <form id="review-form" onsubmit="return submitReview($(this))">
-    <input type="hidden" name="place-id" id="place-id" value="${place.place_id}">
-    <textarea name="review-content" class="form-control" placeholder="Write your review..."></textarea>
-    <div class="my-2 small text-muted">Don't need to choose.. <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Selecting the following checkbox is optional. If you're unsure, feel free to skip it and just leave a review."></i></div>
-    <div class="form-check">
-      <input class="form-check-input" name="review-confirm" type="checkbox" value="1" id="review-confirm-check">
-      <label class="form-check-label" for="review-confirm-check">
-        Confirmed as a No-tip Place.
-      </label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" name="review-dispute" type="checkbox" value="1" id="review-dispute-check">
-      <label class="form-check-label" for="review-dispute-check">
-        This is not a No-tip Place.
-      </label>
-    </div>
-    
-    <div class="text-end">
-    <button class="btn btn-secondary mt-2">Post Review</button>
-    </form>
-    </div>
-    </div>
+    <section class="mt-3">
+      <h5 class="mt-4 mb-3">Add Your Review</h5>
+      <form id="review-form" onsubmit="return submitReview($(this))">
+      <input type="hidden" name="place-id" id="place-id" value="${place.place_id}">
+      <textarea name="review-content" class="form-control" placeholder="Write your review..."></textarea>
+      <div class="my-2 small text-muted">Don't need to choose.. <i class="bi bi-question-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Selecting the following checkbox is optional. If you're unsure, feel free to skip it and just leave a review."></i></div>
+      <div class="form-check">
+        <input class="form-check-input" name="review-confirm" type="checkbox" value="1" id="review-confirm-check">
+        <label class="form-check-label" for="review-confirm-check">
+          Confirmed as a No-tip Place.
+        </label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" name="review-dispute" type="checkbox" value="1" id="review-dispute-check">
+        <label class="form-check-label" for="review-dispute-check">
+          This is not a No-tip Place.
+        </label>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-secondary mt-2">Post Review</button>
+      </div>
+      </form>
+      <hr>
+      <h5 class="mb-3">Reviews</h5>
+      <ul id="review-list"></ul>
+    </section>
     </div>
   `);
 
   $("#place-detail").fadeIn();
-  $("#sidebar").scrollTop(0);
+  $("#panel-content").scrollTop(0);
   initTooltip();
   loadReviews();
 }
@@ -446,9 +680,18 @@ function submitReview(form)
   $.ajax({
     url: "/review/add",
     method: "POST",
+    dataType: "json",
     data: serializedData,
     success: function (response) {
-      loadReviews();
+      if(response.success) 
+      {
+        loadReviews();
+      }
+      else
+      {
+        alert(response.msg);
+        return false;
+      }
     },
     error: function (error) {
       alert("Failed to submit review. Please try again.");
@@ -529,9 +772,6 @@ function loadPlaceDetails(placeId) {
     }
   });
 
-  map.setOptions({ styles: defaultStyle }); // 스타일 변경
-  isPOIVisible = false;
-
   if(!$("#sidebar").is(":visible")) {
     $("#sidebar").slideDown();
   }
@@ -545,16 +785,23 @@ function moveToLocation(lat, lng) {
   selectedMarker.setVisible(true);
 }
 
-// 선택된 장소 정보 저장
-function savePlaceToDatabase() {
-  const placeDetails = window.placeDetailsForSave;
-  $.ajax({
-    url: "/place/save",
-    method: "POST",
-    contentType: "application/json",
-    data: JSON.stringify(placeDetails),
-    success: () => alert("장소가 저장되었습니다!"),
-    error: (error) => alert("저장 중 오류 발생"),
-  });
+// 임시 테스트용
+
+
+// 랜덤 이미지를 반환하는 함수
+function getRandomSampleImage() {
+  const imageList = [
+      '/assets/imgs/sample/restaurant1.png',
+      '/assets/imgs/sample/restaurant2.png',
+      '/assets/imgs/sample/restaurant3.png',
+      '/assets/imgs/sample/bar1.png',
+      '/assets/imgs/sample/bar3.png',
+      '/assets/imgs/sample/bar3.png',
+      '/assets/imgs/sample/cafe1.png',
+      '/assets/imgs/sample/cafe2.png',
+      '/assets/imgs/sample/cafe3.png'
+  ];
+  const randomIndex = Math.floor(Math.random() * imageList.length);
+  return imageList[randomIndex];
 }
 

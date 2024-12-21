@@ -25,10 +25,29 @@ class ReviewModel extends Model {
               FROM review r, place p, user u
              WHERE p.place_id = :place_id:
                AND r.place_no = p.no
-               AND r.created_by = u.no";
+               AND r.created_by = u.no
+          ORDER BY r.no DESC
+             LIMIT 10";
 
     $query = $this->db->query($sql, [
                 'place_id'  =>  $placeId
+              ]);
+    return $query->getResultArray();
+  }
+
+  function listAllForAdmin($limit) 
+  {
+    $sql = "SELECT r.*
+                 , u.name
+                 , u.profile_picture
+              FROM review r, place p, user u
+             WHERE r.place_no = p.no
+               AND r.created_by = u.no
+          ORDER BY r.no DESC
+             LIMIT 10";
+
+    $query = $this->db->query($sql, [
+                'limit'  =>  $limit
               ]);
     return $query->getResultArray();
   }
