@@ -23,24 +23,53 @@ class Manage extends BaseController
 
     public function register($placeId=null): void
     {
-        $data = array();
-
-        $placeModel = new PlaceModel();
-        $res = $placeModel->getByPlaceId($placeId);
-
-        if(!$res) 
+        if($this->request->getMethod() == 'GET') 
         {
-            returnError("No such place");
+            $data = array();
+
+            $placeModel = new PlaceModel();
+            $res = $placeModel->getByPlaceId($placeId);
+
+            if(!$res) 
+            {
+                returnError("No such place");
+            }
+
+            $photos = $placeModel->getPhotosByPlaceNo($res['no']);
+            $res['photos'] = $photos;
+
+            $data['place'] = $res;
+
+            echo view('templates/head');
+            echo view('manage', $data);
+            echo view('templates/foot');
+        } 
+        else if($this->request->getMethod() == 'POST') 
+        {
+            $post = $this->request->getPost();
+
+            $placeId = filter_var($placeId, FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+
+            $firstName = filter_var($post['first-name'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+            $lastName = filter_var($post['last-name'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+            $description = filter_var($post['address'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+            
+            $placeModel = new PlaceModel();
+            $place = $placeModel->getByPlaceId($placeId);
+            $user = getUser();
+
+            if(!$user) 
+            {
+                returnError("To sign up as a manager, you must be logged in.");
+            }
+
+            $res = $placeModel->addPlaceManager($place['no'], $user['no'], 'manager', 'apply', $description);
+
+            if($res) 
+            {
+                returnData("Registered");
+            }
         }
-
-        $photos = $placeModel->getPhotosByPlaceNo($res['no']);
-        $res['photos'] = $photos;
-
-        $data['place'] = $res;
-
-        echo view('templates/head');
-        echo view('manage', $data);
-        echo view('templates/foot');
     }
 
     public function list(): void
