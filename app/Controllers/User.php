@@ -37,10 +37,7 @@ class User extends BaseController
             if($res['data']) 
             {
                 $userNo = $res['data']['no'];    
-            }        
 
-            if($userNo) 
-            {
                 // Update if the user already exists
                 $userModel->updateGoogleUser($name, $email, $profilePicture, $userNo);
             } 
@@ -62,9 +59,10 @@ class User extends BaseController
             if(!$userNo) returnError('Unknown error occurred during login.');
 
             // The following 3 values are always required together, as they are used in the common getUser() function for session data
-            $_SESSION['user_no'] = $userNo;
-            $_SESSION['user_name'] = $name;
-            $_SESSION['profile_image'] = $profilePicture;
+            $_SESSION['userNo'] = $userNo;
+            $_SESSION['userId'] = $googleId;
+            $_SESSION['userName'] = $name;
+            $_SESSION['profilePicture'] = $profilePicture;
         } 
         else 
         {
@@ -107,8 +105,10 @@ class User extends BaseController
         returnData($res);
     }
 
-    public function search(): string
+    public function activity(): void
     {
-        return view('search-test');
+        echo view('templates/head');
+        echo view('activity');
+        echo view('templates/foot');
     }
 }

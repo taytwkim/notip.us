@@ -196,4 +196,8 @@ function randFromArr($arr) {
     return $arr[$index];
 }
 
+function randByteHash($byte=8) {
+    $shortUuid = bin2hex(random_bytes($byte));
+    return $shortUuid;
+}
 ?>

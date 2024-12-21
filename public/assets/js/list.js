@@ -18,14 +18,17 @@ function loadPlaces() {
           <div class="card shadow-sm">
             <div class="main-image card__header header__img skeleton" style="background:URL('${mainPhoto}')"></div>
             <div class="card-body">
-              <p><strong>${place.name}</strong></p>
+              <div class="d-flex justify-content-between align-items-center">
+                <p><strong>${place.name}</strong></p>
+                <p class="text-info small">${place.type}</p>
+              </div>
               <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
               <div class="d-flex justify-content-between align-items-center">
                 <div class="btn-group">
-                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">View on Map</button>
                   <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
                 </div>
-                <small class="text-body-secondary">9 mins</small>
+                <small class="text-body-secondary fw-bold">${place.policyText}</small>
               </div>
             </div>
           </div>

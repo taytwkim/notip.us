@@ -18,7 +18,7 @@ class Review extends BaseController
         $user = getUser();
         if(!$user) 
         {
-            returnFalse("Login to post a comment!");
+            returnError("Login to post a comment!");
         }
 
         $post = $this->request->getPost();
@@ -61,6 +61,21 @@ class Review extends BaseController
 
         $reviewModel = new ReviewModel();
         $rRes = $reviewModel->listByPlaceId($placeId);
+
+        // Transform each review to include the formatted date
+        $formattedReviews = array_map(function ($review) {
+            // Use the formatDateTime function to format created_at
+            $review['time'] = formatDateTime($review['created_at']);
+            return $review;
+        }, $rRes);
+
+        returnData($formattedReviews);
+    }
+
+    public function listAll(): array
+    {
+        $reviewModel = new ReviewModel();
+        $rRes = $reviewModel->listAllForAdmin(5);
 
         // Transform each review to include the formatted date
         $formattedReviews = array_map(function ($review) {
