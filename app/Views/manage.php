@@ -59,19 +59,24 @@
       <li>Approval Granted</li> <!--Not Approved-->
     </ul>
     <div class="py-5 text-center">
+      <?php if(isset($place['photos']) && is_array($place['photos']) && sizeof($place['photos']) > 0) { ?>
       <img class="d-block mx-auto mb-4 rounded" src="/file/image/<?=$place['photos'][0]['file_id']?>" style="width:50%; height:auto;">
+      <?php } ?>
       <h2><?=$place['name']?></h2>
+      <h5 class="text-muted"><?=$place['address']?></h5>
       <p class="lead">If recognized as a manager, you will be able to manage the store information directly!</p>
     </div>
 
     <div class="row g-5">
       <div class="col-12">
         <h4 class="mb-3">Register Information</h4>
-        <form class="needs-validation" novalidate="">
+        <form id="form-manager-register" method="post" onsubmit="return register()">
+          <input type="hidden" name="place-id" value="<?=$place['place_id']?>">
           <div class="row g-3">
             <div class="col-sm-6">
               <label for="firstName" class="form-label">First name</label>
-              <input type="text" class="form-control" id="firstName" placeholder="" value="" required="">
+              <input type="text" class="form-control" name="first-name" id="firstName" placeholder="" value="" required="">
+              <small class="text-muted">Please provide your legal name. This will not be disclosed externally.</small>
               <div class="invalid-feedback">
                 Valid first name is required.
               </div>
@@ -79,7 +84,7 @@
 
             <div class="col-sm-6">
               <label for="lastName" class="form-label">Last name</label>
-              <input type="text" class="form-control" id="lastName" placeholder="" value="" required="">
+              <input type="text" class="form-control" name="last-name" id="lastName" placeholder="" value="" required="">
               <div class="invalid-feedback">
                 Valid last name is required.
               </div>
@@ -89,58 +94,27 @@
               <label for="email" class="form-label">Work Email</label>
               <input type="email" class="form-control" id="email" placeholder="you@example.com">
               <div class="invalid-feedback">
-                Please enter a valid email address for shipping updates.
+                Please enter a valid email address.
               </div>
             </div>
 
             <div class="col-12">
               <label for="referrer" class="form-label">Proof</label>
               <input type="file" class="form-control" id="address2" placeholder="Apartment or suite">
+              <small class="text-muted">Upload your business license and proof of employment.</small>
             </div>
 
             <div class="col-12">
               <label for="description" class="form-label">Description</label>
-              <textarea class="form-control"></textarea>
+              <textarea rows="5" name="description" class="form-control" placeholder="Please provide a brief description of how you can verify your documents and prove that you are an employee. This is for our representatives to reference when they contact you."></textarea>
               <div class="invalid-feedback">
-                Please enter your shipping address.
+                Please enter a description.
               </div>
             </div>
 
             <div class="col-12">
               <label for="referrer" class="form-label">Referrer <span class="text-muted">(Optional)</span></label>
-              <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">
-            </div>
-
-
-
-            <div class="col-md-5">
-              <label for="country" class="form-label">Country</label>
-              <select class="form-select" id="country" required="">
-                <option value="">Choose...</option>
-                <option>United States</option>
-              </select>
-              <div class="invalid-feedback">
-                Please select a valid country.
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <label for="state" class="form-label">State</label>
-              <select class="form-select" id="state" required="">
-                <option value="">Choose...</option>
-                <option>California</option>
-              </select>
-              <div class="invalid-feedback">
-                Please provide a valid state.
-              </div>
-            </div>
-
-            <div class="col-md-3">
-              <label for="zip" class="form-label">Zip</label>
-              <input type="text" class="form-control" id="zip" placeholder="" required="">
-              <div class="invalid-feedback">
-                Zip code required.
-              </div>
+              <input type="text" class="form-control" id="referrer" placeholder="Name and contact information">
             </div>
           </div>
 
@@ -148,50 +122,7 @@
 
           <div class="form-check">
             <input type="checkbox" class="form-check-input" id="same-address">
-            <label class="form-check-label" for="same-address">Shipping address is the same as my billing address</label>
-          </div>
-
-          <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="save-info">
-            <label class="form-check-label" for="save-info">Save this information for next time</label>
-          </div>
-
-          <hr class="my-4">
-
-          <h4 class="mb-3">Payment</h4>
-
-          <div class="my-3">
-            <div class="form-check">
-              <input id="credit" name="paymentMethod" type="radio" class="form-check-input" checked="" required="">
-              <label class="form-check-label" for="credit">Credit card</label>
-            </div>
-            <div class="form-check">
-              <input id="debit" name="paymentMethod" type="radio" class="form-check-input" required="">
-              <label class="form-check-label" for="debit">Debit card</label>
-            </div>
-            <div class="form-check">
-              <input id="paypal" name="paymentMethod" type="radio" class="form-check-input" required="">
-              <label class="form-check-label" for="paypal">PayPal</label>
-            </div>
-          </div>
-
-          <div class="row gy-3">
-            <div class="col-md-6">
-              <label for="cc-name" class="form-label">Name on card</label>
-              <input type="text" class="form-control" id="cc-name" placeholder="" required="">
-              <small class="text-muted">Full name as displayed on card</small>
-              <div class="invalid-feedback">
-                Name on card is required
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <label for="cc-number" class="form-label">Credit card number</label>
-              <input type="text" class="form-control" id="cc-number" placeholder="" required="">
-              <div class="invalid-feedback">
-                Credit card number is required
-              </div>
-            </div>
+            <label class="form-check-label" for="same-address">I certify that the information I provide is true. I may be held legally responsible if I provide false information for malicious purposes.</label>
           </div>
 
           <hr class="my-4">
@@ -201,6 +132,27 @@
       </div>
     </div>
   </main>
+
+  <script>
+    function register() 
+    {
+      let registerSerializedData = $("#form-manager-register").serialize();
+
+      $.ajax({
+        url: "/manage/register/"+$("#place-id").val(),
+        dataType: "json",
+        data: registerSerializedData,
+        success: function (response) {
+          console.log(response);
+          
+          
+        },
+        error: function (error) {
+          console.error("Error:", error);
+        }
+      });
+    }
+  </script>
 
   <footer class="my-5 pt-5 text-muted text-center text-small">
     <p class="mb-1">© 2017–2021 Company Name</p>

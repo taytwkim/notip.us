@@ -44,7 +44,7 @@ class User extends BaseController
             else 
             {
                 // Add if the user is new
-                $res = $userModel->addUser($name, $email, $profilePicture, $googleId);
+                $res = $userModel->addUser($name, $email, $profilePicture, $googleId, getUserIp());
 
                 if($res['success']) 
                 {

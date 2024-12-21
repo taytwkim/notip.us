@@ -1,1 +1,37 @@
-#ishita {color:blue}
+.about-us-page .navbar .container-fluid,
+.about-us-page .navbar-expand-lg .navbar-collapse,
+.about-us-page .navbar-expand-lg .navbar-nav {
+    flex-direction: column;
+}
+.about-us-page .navbar {
+    height: 100vh;
+    align-items: flex-start;
+    width: 25vh;
+    margin-left: -30px;
+    margin-top: -14px;
+    position: fixed;
+}   
+.about-us-page .tags {
+    margin-left: -65px;
+}
+
+.content{
+    margin-left: 250px; 
+   background-color: #f8f9fa;
+   width: 100%;
+}
+
+.aboutus-content{
+    background-color: #f8f9fa;
+}
+.about-us-page, body{
+     background-color: #f8f9fa;
+     width: 100%;
+     height: 100%;
+ }
+.aboutus-content p{
+text-align: justify !important;
+  text-justify: inter-word;
+ }
+
+ 

@@ -26,23 +26,26 @@ class UserModel extends Model {
   /************************************************/
   /************************************************/
 
-  function addUser($name, $email, $profilePicture, $googleId) {
+  function addUser($name, $email, $profilePicture, $googleId, $register_ip) {
     $sql = "INSERT INTO user 
                       ( google_id
                       , name
                       , email
-                      , profile_picture ) 
+                      , profile_picture
+                      , register_ip ) 
                       VALUES 
                       ( :google_id:
                       , :name:
                       , :email:
-                      , :profile_picture: )";
+                      , :profile_picture: 
+                      , :register_ip:)";
 
     $query =  $this->db->query($sql, [
                   'google_id'  =>  $googleId,
                   'name'  =>  $name,
                   'email'  =>  $email,
-                  'profile_picture'  =>  $profilePicture
+                  'profile_picture'  =>  $profilePicture,
+                  'register_ip'  =>  $register_ip
               ]);
 
     $error = $this->db->error();
@@ -58,57 +61,6 @@ class UserModel extends Model {
   }
 
 
-  function addAnswer($id, $answer, $regip) {
-    $sql = "INSERT INTO `answer` 
-                       (`question`
-                      , `answer`
-                      , `regip`) 
-                 VALUES (:id:
-                       , :answer:
-                       , :ip:)";
-    $query =  $this->db->query($sql, [
-                  'id'  =>  $id,
-                  'answer'  =>  $answer,
-                  'regip'  =>  $regip
-              ]);
-    return $this->db->affectedRows();
-  }
-
-  function addQuestionSolve($user, $question, $solve, $correct) {
-    $sql = "INSERT INTO `question_solve` 
-                       (`user`
-                      , `question`
-                      , `solve`
-                      , `correct`
-                      , `last`) 
-                 VALUES (:user:
-                       , :question:
-                       , :solve:
-                       , :correct:
-                       , 1)";
-    $query =  $this->db->query($sql, [
-                  'user'  =>  $user,
-                  'question'  =>  $question,
-                  'solve'  =>  $solve,
-                  'correct'  =>  $correct
-              ]);
-
-
-    $error = $this->db->error();
-
-    if($error['code']) {
-      $data['success'] = false;
-    } else {
-      $data['success'] = true;
-    }
-
-    $data["insertID"] = $this->db->insertID();
-    $data["error"] = $this->db->error();
-
-    return $data;
-  }
-
-
   /************************************************/
   /************************************************/
   /***************    UPDATE      *****************/
@@ -121,6 +73,7 @@ class UserModel extends Model {
                SET name=:name:
                  , email=:email:
                  , profile_picture=:profile_picture: 
+                 , last_login = CURRENT_TIME()
              WHERE no=:no:";
     $query =  $this->db->query($sql, [
                   'name'  =>  $name,
